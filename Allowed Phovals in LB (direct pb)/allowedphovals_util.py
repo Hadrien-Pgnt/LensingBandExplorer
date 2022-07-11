@@ -37,27 +37,13 @@ incr = 0.002 #increment for each hop
 startpoint = 'upper left' #starting point (values can be 'medium', 'upper right', 'lower right', 'lower left', 'upper left', 
                     # or some coordinates d+ and d- separated by a ';' - e.g. '9.771;9.709')
 tolerance = 5e-9 #tolerance for the acceptance of a phoval in the LB (to avoid numercial artifacts)
+Ncheck = 100 #nb of points computed for the phoval, used to check that it lies in the LB
 
 
-
-lb.explore_one_step(incr, startpoint, nhops, tolerance)
+lb.explore_one_step(incr, startpoint, nhops, tolerance, Ncheck)
 lb.plot_last_step()
 
 
 
 #### TBD: change self.NN as Ncheck in exploration
 
-
-#### TESTS (Deprecated)
-
-# print(lb.is_in_band((0.8-5.2j)))
-# print(lb.dist_to_band((0.8-5.2j)))
-# print(lb.is_in_band((0)))
-# print(lb.dist_to_band(0))
-# print(lb.is_in_band((-4-4j)))
-# print(lb.dist_to_band(-4-4j))
-# print(lb.dist_phoval_to_band(lb.phoval_inner.x, 100))
-# print(lb.dist_phoval_to_band(lb.phoval_outer.x, 100))
-# print(lb.dist_phoval_to_band(0.5*(np.array(lb.phoval_outer.x)+np.array(lb.phoval_inner.x)), 100))
-
-# lb.explore_one_step(1, 0, 0) 

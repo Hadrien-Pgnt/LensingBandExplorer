@@ -301,14 +301,12 @@ class LensingBand:
             plt.legend()
         
            
-    def explore_at_step(self, step, incr, startpoint, nhops, tol):
+    def explore_at_step(self, step, incr, startpoint, nhops, tol, Ncheck):
         '''Loads the values for accepted/rejected pts in the (d+, d-) plane previoulsy aggregated during *step* steps
         Performs a new step (the *step+1*): a random walk starting from *startpoint*, 
         walking *nhops* times on a grid with a *incr* increment
         A point of the (d+, d-) plane is accepted if a phoval  - with these diameter values - is found that fits into the lensing band 
         (i.e. for which distance to the LB is =0, with a tolerance *tol* to account for numerical artifacts)'''
-        
-        Ncheck = self.NN ## temporary
         
         data_load_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
         data_save_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step+1)
@@ -406,7 +404,7 @@ class LensingBand:
         np.save(data_save_path+'_accepted.npy', accepted, allow_pickle=True)
         np.save(data_save_path+'_rejected.npy', rejected, allow_pickle=True)
     
-    def explore_one_step(self, incr, startpoint, nhops, tol):
+    def explore_one_step(self, incr, startpoint, nhops, tol, Ncheck):
         ''' Determines the last step of exploration (0 if nothing was already computed)
         then launches explore_at_step at next step with the given parameters for the random walk  '''
         
@@ -415,11 +413,11 @@ class LensingBand:
         # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
         if not os.path.exists(step_data_path):
             os.makedirs(step_data_path)
-            self.explore_at_step(0, incr, startpoint, nhops, tol)
+            self.explore_at_step(0, incr, startpoint, nhops, tol, Ncheck)
         
         else:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x_accepted.npy' or 'step_x_rejected.npy' where x is the nb of the step
-            self.explore_at_step(laststep, incr, startpoint, nhops, tol)
+            self.explore_at_step(laststep, incr, startpoint, nhops, tol, Ncheck)
 
     
     def plot_step(self, step):
