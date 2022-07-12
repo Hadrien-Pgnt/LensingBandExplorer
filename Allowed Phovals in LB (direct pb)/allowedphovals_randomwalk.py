@@ -15,12 +15,9 @@ import matplotlib.pyplot as plt
 from matplotlib import path as paths
 import math
 from scipy import interpolate
-from scipy.optimize import curve_fit, minimize
-import cmath
+from scipy.optimize import minimize
 from scipy import optimize
-import pandas as pd
-import itertools as it
-from scipy.spatial import ConvexHull
+# from scipy.spatial import ConvexHull
 import random as rnd
 import os
 
