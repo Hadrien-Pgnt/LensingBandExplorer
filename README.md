@@ -16,6 +16,10 @@ Numerical computation of the lensing bands is done here using modified code from
 
 The Edge_data and Steps_data directories are useful to save/load data about the LB edges and the data from previously computed steps, respectively. 
 
+# 2. Inverse problem: lensing bands compatible with a diameter measurement
+
+This part is not ready for use yet.
+
 
 [1] Paugnat, H., Lupsasca, A., Vincent, F., Wielgus, M. (2022)
 Photon ring test of the Kerr hypothesis: variation in the ring shape
