@@ -384,9 +384,14 @@ class LensingBand:
                         found_accepted = True
                     
                     else:
-                        ## minimize over phi0, chi and X the distance to the lensing band
-                        best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
-                        bestparams = [best_add_params.x[0], *params[1:4], *best_add_params.x[1:]]
+                        # ## minimize over phi0, chi and X the distance to the lensing band (approximative)
+                        # best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
+                        # bestparams = [best_add_params.x[0], *params[1:4], *best_add_params.x[1:]]
+                        
+                        ## minimize over phi0, R0, chi and X (R1 and R2 are given by keeping d+, d- constant) the distance to the lensing band
+                        best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],p[1],0.5*d_plus-p[1],0.5*d_minus-p[1],p[2],p[3]],Ncheck), x0=([*params[0:2],*params[4:]]),bounds=[(-math.pi,math.pi),(0., d_minus),(-1,1),(-np.inf,np.inf)])
+                        bestparams = [*best_add_params.x[0:2], 0.5*d_plus-best_add_params.x[1],0.5*d_minus-best_add_params.x[1], *best_add_params.x[2:]]
+
 
                         if self.dist_phoval_to_band(bestparams, Ncheck) <= tol:
                             params = bestparams
