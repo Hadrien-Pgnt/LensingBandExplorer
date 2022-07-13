@@ -9,12 +9,13 @@ This code computes the lensings bands (LBs) compatible with a fixed point in the
 """
 
 from lensingbands import LensingBand
+import crit_curve as cc
 
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy.optimize import minimize, root
-from scipy import optimize, interpolate
+from scipy import interpolate
 # from scipy.spatial import ConvexHull
 import random as rnd
 import os
@@ -42,6 +43,9 @@ def point_in_convex_hull(point, hull, tolerance=1e-12):
         (np.dot(eq[:-1], point) + eq[-1] <= tolerance)
         for eq in hull.equations)
 
+def phoval(phi, R0, R1, R2, chi, X):
+    return ( R0 + np.sqrt(R1**2 * np.sin(phi)**2 + R2**2 * np.cos(phi)**2) + (X -chi)*np.cos(phi) + np.arcsin(chi*np.cos(phi)))
+
 def phoval_points(phi, phi0, R0, R1, R2, chi, X):
     ''' Returns the (alpha, beta) points for the (rotated) phoval of params (phi0, R0, R1, R2, chi, X)
     /!\ phi does not correspond to the polar coordinate (sigma), but rather to some intrinsic parametrization of the phoval'''
@@ -50,6 +54,7 @@ def phoval_points(phi, phi0, R0, R1, R2, chi, X):
     x = f*np.cos(phi) - fprime *np.sin(phi)
     y = f*np.sin(phi) + fprime *np.cos(phi)
     return x+y*1j
+
 
 ########################
 
@@ -97,23 +102,36 @@ class DiameterMeasurement:
         
         def to_solve(x):
                 return [*self.d_parr(x[0],x[1])-self.dplus, *self.d_ortho(x[0],x[1])-self.dminus]
-        sol = root(to_solve, [self.spin_guess,self.incl_guess*math.pi/180], tol=1e-10)
+        sol = root(to_solve, [self.spin_guess,self.incl_guess], tol=1e-10)
         
         self.spin_guess = sol.x[0]
-        self.incl_guess = sol.x[1]*180/math.pi
-        
-        
+        self.incl_guess = sol.x[1]
 
-### TBD: adapt the code after this point 
-### TBD: check that to_solve does not need a better x0 guess  
+        
+    def explore_one_step(self, incr, startpoint, nhops, tol, Ncheck):
+        ''' Determines the last step of exploration (0 if nothing was already computed)
+        then launches explore_at_step at next step with the given parameters for the random walk  '''
+        
+        step_data_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)
+        
+        # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
+        if not os.path.exists(step_data_path):
+            os.makedirs(step_data_path)
+            self.explore_at_step(0, incr, startpoint, nhops, tol, Ncheck)
+        
+        else:
+            laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x_accepted.npy' or 'step_x_rejected.npy' where x is the nb of the step
+            self.explore_at_step(laststep, incr, startpoint, nhops, tol, Ncheck)
+
         
     def explore_at_step(self, step, incr, startpoint, nhops, tol, Ncheck):
-        '''Loads the values for accepted/rejected pts in the (d+, d-) plane previoulsy aggregated during *step* steps
+        '''Loads the values for accepted/rejected pts in the (d+, d-) plane previously aggregated during *step* steps
         Performs a new step (the *step+1*): a random walk starting from *startpoint*, 
         walking *nhops* times on a grid with a *incr* increment
-        A point of the (d+, d-) plane is accepted if a phoval  - with these diameter values - is found that fits into the lensing band 
-        (i.e. for which distance to the LB is =0, with a tolerance *tol* to account for numerical artifacts)'''
-        
+        A point of the (d+, d-) plane is accepted if the corresponding spin & incl (i.e. with a critical curve having these diameter values) 
+        yields a lensing band containing a phoval with the "measured" max/min diameters self.dplus and self.dminus
+        (i.e. this phoval has distance to the LB = 0, with a tolerance *tol* to account for numerical artifacts)'''
+      
         data_load_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
         data_save_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step+1)
         
@@ -122,9 +140,11 @@ class DiameterMeasurement:
             accepted_base = np.load(data_load_path+'_accepted.npy')
             rejected_base = np.load(data_load_path+'_rejected.npy')
             
-            if startpoint=='medium':
-                # params of a "medium" phoval which we are sure lies in the lensing band
-                params = 0.5*(np.array(self.phoval_outer.x)+np.array(self.phoval_inner.x))
+### TBD: adapt the code after this point               
+
+            if startpoint=='critical curve guess':
+                # params of the phoval best fitting (within phovals with the expected d+ and d-) the critical curve for spin & incl guess 
+                pass
                 
             elif startpoint=='upper right':
                 #The value in accepted_base which is the furthest upper right position in the (d+, d-) plane
@@ -210,20 +230,6 @@ class DiameterMeasurement:
         np.save(data_save_path+'_accepted.npy', accepted, allow_pickle=True)
         np.save(data_save_path+'_rejected.npy', rejected, allow_pickle=True)
     
-    def explore_one_step(self, incr, startpoint, nhops, tol, Ncheck):
-        ''' Determines the last step of exploration (0 if nothing was already computed)
-        then launches explore_at_step at next step with the given parameters for the random walk  '''
-        
-        step_data_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)
-        
-        # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
-        if not os.path.exists(step_data_path):
-            os.makedirs(step_data_path)
-            self.explore_at_step(0, incr, startpoint, nhops, tol, Ncheck)
-        
-        else:
-            laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x_accepted.npy' or 'step_x_rejected.npy' where x is the nb of the step
-            self.explore_at_step(laststep, incr, startpoint, nhops, tol, Ncheck)
 
     
     def plot_step(self, step):
