@@ -9,15 +9,16 @@ This code computes the phovals allowed in a fixed lensing band (LB) - fully
 determined by spin, inclination and order of the LB
 """
 
-import numpy as np
 import lensingbands_aart as aart
+
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import path as paths
 import math
 from scipy import interpolate
 from scipy.optimize import minimize
 from scipy import optimize
-# from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull
 import random as rnd
 import os
 
@@ -25,7 +26,7 @@ import os
 
 from matplotlib import rcParams
 rcParams['font.family']='serif'
-#rcParams['text.usetex']=True 
+# rcParams['text.usetex']=True 
 
 red = [228/255, 26/255, 28/255]
 gold = [255/255, 215/255, 0/255] 
@@ -60,6 +61,35 @@ def phoval_points(phi, phi0, R0, R1, R2, chi, X):
     x = f*np.cos(phi) - fprime *np.sin(phi)
     y = f*np.sin(phi) + fprime *np.cos(phi)
     return x+y*1j
+
+n_points = int(1e5)
+def crit_curve_diams(a,incl):   
+    ''' Gives the max/min diameters of the Kerr critical curve for spin a and inclination incl'''
+    
+    thetaobs = incl*math.pi/180  #in radians
+    
+    rplus = 2*(1+ math.cos(2/3 * math.acos(a))) 
+    rminus = 2*(1+ math.cos(2/3 * math.acos(-a)))
+    r = np.linspace(rplus, rminus, n_points)
+    
+    delta = r**2 - 2*r + a**2
+    diff = 2*np.sqrt(delta*(2*r**3-3*r**2+a**2))
+    uplus = r/(a**2 * (r-1)**2) * (-r**3+3*r-2*a**2 + diff)
+    uminus = r/(a**2 * (r-1)**2) * (-r**3+3*r-2*a**2 - diff)
+    
+    l = (r**2-a**2 - r*delta)/ a / (r-1)
+    
+    rhoD = np.sqrt(a**2 * ( math.cos(thetaobs)**2 - uplus * uminus) + l**2)
+    cos_phi_p = -l/ (rhoD*math.sin(thetaobs))
+    
+    x = rhoD[abs(cos_phi_p)<1]*cos_phi_p[abs(cos_phi_p)<1]
+    y = rhoD[abs(cos_phi_p)<1]*np.sqrt(1-cos_phi_p[abs(cos_phi_p)<1]**2)
+
+    d_ortho= np.max(x) - np.min(x) #min diameter is orthogonal to the spin axis, i.e. for phi_p=0°
+    d_parallel= 2*np.max(y)  # max diameter is parallel to the spin axis, i.e. for phi_p=90°
+    #we only plotted the half-circle here, but the figure is symmetric along the x axis  
+    
+    return (d_parallel, d_ortho)
 
 
 ########################
@@ -422,7 +452,7 @@ class LensingBand:
             self.explore_at_step(laststep, incr, startpoint, nhops, tol, Ncheck)
 
     
-    def plot_step(self, step):
+    def plot_step(self, step, fancy=False):
         ''' Plots the results of the random walk after the given step'''
         
         if step==0:
@@ -432,13 +462,47 @@ class LensingBand:
             accepted = np.load(data_load_path+'_accepted.npy')
             rejected = np.load(data_load_path+'_rejected.npy')
             # print(accepted, rejected)
-            plt.figure()
-            for x in accepted:
-                plt.scatter(x[0],x[1],color='g')
-            for x in rejected:
-                plt.scatter(x[0],x[1],color='r')
+            if not(fancy):
+                plt.figure()
+                for x in accepted:
+                    plt.scatter(x[0],x[1],color='g')
+                for x in rejected:
+                    plt.scatter(x[0],x[1],color='r')
+                    
+            else:
+                plt.figure(figsize=(17,11))
+                plt.plot([2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.02], [2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.025], color='tab:grey', linestyle='--', label = r'$d_+=d_-$ curve')
                 
-    def plot_last_step(self):
+                #manually add the LB edges
+                accepted = np.concatenate((accepted, [[2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),*self.phoval_outer.x]],[[2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),*self.phoval_inner.x]]))
+                
+                hull = ConvexHull(accepted[:,0:2])        
+                plt.fill(accepted[hull.vertices,0], accepted[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Allowed phovals in the lensing band')
+                
+                plt.scatter(2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),color='c', s=100, marker='o', label=r'Outer edge of the $n=2$ lensing band')
+                plt.scatter(2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),color=orange, s=100, marker='o', label=r'Inner edge of the $n=2$ lensing band')
+
+                critcurve = crit_curve_diams(self.spin,self.incl)
+                plt.scatter(critcurve[0], critcurve[1], color='tab:brown', s=100, marker='*', alpha=1, label='Critical curve')
+                
+
+                # #### TEMPORARY ####
+                # allowed=np.load('spin500angle45_allowedvalues_step19.npy')
+                # # ## We add the outer and inner edges in the allowed values - with their phoval best fit
+                # allowed = np.concatenate((allowed,  [[2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),*self.phoval_outer.x]],[[2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),*self.phoval_inner.x]]))
+
+                # hull = ConvexHull(allowed[:,0:2])        
+                # plt.fill(allowed[hull.vertices,0], allowed[hull.vertices,1], facecolor=(*green,0.1), edgecolor='k', label = r'Allowed phovals in the $n=2$ lensing band (old method)')
+                
+                ###################
+                
+                plt.legend(fontsize=12, loc = 'upper left')
+                plt.tick_params(which='both', labelsize=16)
+                plt.xlabel(r'$d_+/M$',fontsize=24)
+                plt.ylabel(r'$d_-/M$',fontsize=24)
+
+
+    def plot_last_step(self, fancy=False):
         ''' Determines the last step of exploration (0 if nothing was already computed)
         and plots the results after that step'''
         
@@ -446,10 +510,10 @@ class LensingBand:
         
         # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
         if not os.path.exists(step_data_path):
-            self.plot_step(0)
+            self.plot_step(0,fancy)
         else:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
-            self.plot_step(laststep)
+            self.plot_step(laststep, fancy)
 
 
 
