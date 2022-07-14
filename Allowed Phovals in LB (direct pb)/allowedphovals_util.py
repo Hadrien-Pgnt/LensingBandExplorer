@@ -9,14 +9,10 @@ determined by spin, inclination and order of the LB
 """
 
 from allowedphovals_randomwalk import LensingBand
-import numpy as np
-from matplotlib import path
-
-##############
 
 ### LB parameters
-spin = 0.5
-incl = 45
+spin = 0.94
+incl = 17
 order = 2
 NN = 100 #nb of points computed for the edges
 
@@ -34,16 +30,26 @@ lb.replace_edges_by_phoval_fits(plot=False)
 ### Random walk parameters
 nhops = 100 #nb of hops
 incr = 0.0005 #increment for each hop
-startpoint = 'upper left' #starting point (values can be 'medium', 'upper right', 'lower right', 'lower left', 'upper left', 
+startpoint = '10.4078;10.2287' #starting point (values can be 'medium', 'upper right', 'lower right', 'lower left', 'upper left', 
                     # or some coordinates d+ and d- separated by a ';' - e.g. '9.771;9.709')
 tolerance = 5e-9 #tolerance for the acceptance of a phoval in the LB (to avoid numercial artifacts)
 Ncheck = 100 #nb of points computed for the phoval, used to check that it lies in the LB
 
+### Performs one random walk (i.e. one additional step of computation) with the given parameters
+### and plots the result after this step
+### (this should be executed over and over until satisfactory determination of the boundary between allowed and rejected)
 
-# lb.explore_one_step(incr, startpoint, nhops, tolerance, Ncheck)
-# lb.plot_last_step(fancy=False)
-lb.plot_last_step(fancy=True)
+lb.explore_one_step(incr, startpoint, nhops, tolerance, Ncheck)
+lb.plot_last_step(fancy=False)
+
+### Shows the allowed region as a hull (use when satisfactory determination of the boundary is reached)
+# lb.plot_last_step(fancy=True)  
 
 
-#### TBD: change self.NN as Ncheck in exploration
+
+
+
+
+
+
 

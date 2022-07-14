@@ -26,7 +26,7 @@ import os
 
 from matplotlib import rcParams
 rcParams['font.family']='serif'
-# rcParams['text.usetex']=True 
+rcParams['text.usetex']=True 
 
 red = [228/255, 26/255, 28/255]
 gold = [255/255, 215/255, 0/255] 
@@ -471,22 +471,22 @@ class LensingBand:
                     
             else:
                 plt.figure(figsize=(17,11))
-                plt.plot([2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.02], [2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.025], color='tab:grey', linestyle='--', label = r'$d_+=d_-$ curve')
+                line1 = plt.plot([2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.02], [2*(self.phoval_inner.x[1]+self.phoval_inner.x[2])-0.02,2*(self.phoval_outer.x[1]+self.phoval_outer.x[3])+0.025], color='tab:grey', linestyle='--', label = r'$d_+=d_-$ curve')
                 
                 #manually add the LB edges
                 accepted = np.concatenate((accepted, [[2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),*self.phoval_outer.x]],[[2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),*self.phoval_inner.x]]))
                 
                 hull = ConvexHull(accepted[:,0:2])        
-                plt.fill(accepted[hull.vertices,0], accepted[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Allowed phovals in the lensing band')
+                fill1 = plt.fill(accepted[hull.vertices,0], accepted[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Allowed phovals in the lensing band')
                 
-                plt.scatter(2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),color='c', s=100, marker='o', label=r'Outer edge of the $n=2$ lensing band')
-                plt.scatter(2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),color=orange, s=100, marker='o', label=r'Inner edge of the $n=2$ lensing band')
+                scatt2 = plt.scatter(2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),color='c', s=100, marker='o', label=r'Outer edge of the $n=2$ lensing band')
+                scatt3 = plt.scatter(2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),color=orange, s=100, marker='o', label=r'Inner edge of the $n=2$ lensing band')
 
                 critcurve = crit_curve_diams(self.spin,self.incl)
                 plt.scatter(critcurve[0], critcurve[1], color='tab:brown', s=100, marker='*', alpha=1, label='Critical curve')
                 
 
-                # #### TEMPORARY ####
+                # #### TEMPORARY: compare with old method ####
                 # allowed=np.load('spin500angle45_allowedvalues_step19.npy')
                 # # ## We add the outer and inner edges in the allowed values - with their phoval best fit
                 # allowed = np.concatenate((allowed,  [[2*(self.phoval_outer.x[1]+self.phoval_outer.x[2]),2*(self.phoval_outer.x[1]+self.phoval_outer.x[3]),*self.phoval_outer.x]],[[2*(self.phoval_inner.x[1]+self.phoval_inner.x[2]),2*(self.phoval_inner.x[1]+self.phoval_inner.x[3]),*self.phoval_inner.x]]))
