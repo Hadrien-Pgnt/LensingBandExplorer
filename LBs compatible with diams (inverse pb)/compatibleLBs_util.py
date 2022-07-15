@@ -40,7 +40,23 @@ dm = DiameterMeasurement(dplus_measured, dminus_measured, order, NN, spinguess, 
 
 ### Uses the crit. curve map (a,i)->(d+,d-) to get a precise starting point for the spin & incl
 ### then fits the corresponding crit. curve map to a phoval (with fixed d+,d-)
+
 dm.guess_spin_incl_from_crit_curve()
 # print(dm.spin_guess, dm.incl_guess)
-pcrit_constrained = cc.crit_curve_phoval_fit_with_diam_constraint(dm.spin_guess, dm.incl_guess, 10.318483143214817, 10.235834607023905,plot=True)
-print(dm.phoval_params)
+# pcrit_constrained = cc.crit_curve_phoval_fit_with_diam_constraint(dm.spin_guess, dm.incl_guess, 10.318483143214817, 10.235834607023905,plot=True)
+# print(dm.firstguess_phoval_params)
+
+
+### Random walk parameters
+
+incr = (0.01, 2.5) #increments for spin and inclination, respectively
+startpoint = 'critical curve guess'
+nhops = 100
+tol = 5e-9 
+Ncheck = 100
+
+dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
+dm.plot_last_step()
+
+
+

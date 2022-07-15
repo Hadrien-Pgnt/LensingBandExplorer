@@ -68,7 +68,7 @@ class DiameterMeasurement:
         self.order = order # order of the ring (we are typically interested in the n=2 ring)
         self.NN = NN #nb of points computed for the LB edges 
         
-        self.phoval_params = None #rotated phoval parameters   
+        self.firstguess_phoval_params = None #rotated phoval parameters   
         
         self.spin_guess = spinguess
         self.incl_guess = inclguess
@@ -109,14 +109,14 @@ class DiameterMeasurement:
         
         ''' Then fits the obtained crit curve to a phoval (with fixed d+,d-) '''
         
-        self.phoval_params = cc.crit_curve_phoval_fit_with_diam_constraint(self.spin_guess, self.incl_guess, self.dplus, self.dminus)
+        self.firstguess_phoval_params = cc.crit_curve_phoval_fit_with_diam_constraint(self.spin_guess, self.incl_guess, self.dplus, self.dminus)
 
         
     def explore_one_step(self, incr, startpoint, nhops, tol, Ncheck):
         ''' Determines the last step of exploration (0 if nothing was already computed)
         then launches explore_at_step at next step with the given parameters for the random walk  '''
         
-        step_data_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)
+        step_data_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)
         
         # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
         if not os.path.exists(step_data_path):
@@ -129,66 +129,48 @@ class DiameterMeasurement:
 
         
     def explore_at_step(self, step, incr, startpoint, nhops, tol, Ncheck):
-        '''Loads the values for accepted/rejected pts in the (d+, d-) plane previously aggregated during *step* steps
+        '''Loads the values for accepted/rejected pts in the (a,i) plane previously aggregated during *step* steps
         Performs a new step (the *step+1*): a random walk starting from *startpoint*, 
-        walking *nhops* times on a grid with a *incr* increment
-        A point of the (d+, d-) plane is accepted if the corresponding spin & incl (i.e. with a critical curve having these diameter values) 
-        yields a lensing band containing a phoval with the "measured" max/min diameters self.dplus and self.dminus
+        walking *nhops* times on a grid with a *incr[0]* increment for spin and a *incr[1]* increment for inclination
+        A point of the (a,i) plane is accepted if the corresponding lensing band 
+        contains a phoval with the "measured" max/min diameters self.dplus and self.dminus
         (i.e. this phoval has distance to the LB = 0, with a tolerance *tol* to account for numerical artifacts)'''
       
-        data_load_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
-        data_save_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step+1)
+        data_load_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
+        data_save_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step+1)
         
         if step!=0:
             #Loads the accepted/rejected values from the previous step
             accepted_base = np.load(data_load_path+'_accepted.npy')
             rejected_base = np.load(data_load_path+'_rejected.npy')
-            
-### TBD: adapt the code after this point               
 
             if startpoint=='critical curve guess':
-                # params of the phoval best fitting (within phovals with the expected d+ and d-) the critical curve for spin & incl guess 
-                pass
-                
-            elif startpoint=='upper right':
-                #The value in accepted_base which is the furthest upper right position in the (d+, d-) plane
-                index=np.argmax(accepted_base[:,0]+accepted_base[:,1]) #index in accepted_base of the point in the upper right corner
-                params=np.copy(accepted_base[index,2:]) # params of the rotated phoval corresponding to this point 
-            
-            elif startpoint=='lower right':
-                #The value in accepted_base which is the furthest lower right position in the (d+, d-) plane
-                index=np.argmax(accepted_base[:,0]-accepted_base[:,1]) #index in accepted_base of the point in the lower right corner
-                params=np.copy(accepted_base[index,2:]) # params of the rotated phoval corresponding to this point 
-            
-            elif startpoint=='upper left':
-                #The value in accepted_base which is the furthest upper left position in the (d+, d-) plane
-                index=np.argmin(accepted_base[:,0]-accepted_base[:,1]) #index in accepted_base of the point in the upper left corner
-                params=np.copy(accepted_base[index,2:]) # params of the rotated phoval corresponding to this point 
-            
-            elif startpoint=='lower left':
-                #The value in accepted_base which is the furthest lower left position in the (d+, d-) plane
-                index=np.argmin(accepted_base[:,0]+accepted_base[:,1]) #index in accepted_base of the point in the lower left corner
-                params=np.copy(accepted_base[index,2:]) # params of the rotated phoval corresponding to this point 
-            
+                # spin & incl guess + params of the phoval best fitting the corresponding critical curve (within diameter constraints) 
+                spin, incl = self.spin_guess, self.incl_guess
+                params = self.firstguess_phoval_params
             else:
-                # Startpoint should be specified in the form of a string with coordinates d+ and d- separated by a ';'
-                # (ex: '9.771;9.709')
+                # Startpoint should be specified in the form of a string with spin and inclination separated by a ';'
+                # (ex: '0.44;57.2')
                 # Program will pick the accepted value closest to this point
                 
-                start_dplus = float(startpoint.split(";")[0])
-                start_dminus = float(startpoint.split(";")[1])
+                start_spin = float(startpoint.split(";")[0])
+                start_incl = float(startpoint.split(";")[1])
                 
-                index=np.argmin(np.abs(start_dplus-accepted_base[:,0])+np.abs(start_dminus-accepted_base[:,1])) #index in accepted_base of the accepted point closest to the coords given in startpoint
-                params=np.copy(accepted_base[index,2:]) # params of the rotated phoval corresponding to this point we selected
+                index=np.argmin(np.abs(start_spin-accepted_base[:,0])+np.abs(start_incl-accepted_base[:,1])) #index in accepted_base of the accepted (a,i) point closest to the coords given in startpoint
+                spin, incl = accepted_base[index,0], accepted_base[index,1]
+                params=np.copy(accepted_base[index, 2:]) # params of the corresponding accepted rotated phoval 
         
             rejected = list(rejected_base)
             accepted = list(accepted_base)
         
         else: #if step==0 (i.e. if nothing has already been computed)
-            params = 0.5*(np.array(self.phoval_outer.x)+np.array(self.phoval_inner.x)) # medium by default
+            spin, incl = self.spin_guess, self.incl_guess
+            params = self.firstguess_phoval_params
+            # guess from crit curve identification by default
             accepted = []
             rejected = []
-        
+
+
         ## Random walk
 
         for hop in range(nhops):
@@ -198,69 +180,73 @@ class DiameterMeasurement:
             found_accepted = False
             already_tried =[]
             
-            while not(found_accepted) and len(already_tried)<6:
-                index_change = rnd.randint(1,3) #randomly pick R0,R1 or R2
-                sign = 2*rnd.randint(0,1) - 1 # randomly pick +/-1
-                
+            while not(found_accepted) and len(already_tried)<4:
+                index_change = rnd.randint(0,1) #randomly pick a or i
+                sign = 2*rnd.randint(0,1) - 1 # randomly pick +/-1   
+              
                 if (index_change,sign) not in already_tried:
-                    params[index_change] += sign*incr
+                    if index_change==0:#change spin with the right increment
+                        spin += sign*incr[0]
+                    else: #change inclination with the right increment
+                        incl += sign*incr[1]
                     
-                    R0 = params[1]
-                    R1 = max(params[2],params[3])
-                    R2 = min(params[2],params[3])
-                    d_plus = 2*(R0+R1)
-                    d_minus = 2*(R0+R2)
-                    # print(d_plus,d_minus,params)
+                    ## Instantiation of a LB, computation of its edges and its phoval fits
+                    lb = LensingBand(spin, incl, self.order, self.NN)
+                    lb.compute_edges_points()
+                    lb.compute_edges_polar()
+                    lb.phoval_fit_edges(100)
+                    lb.replace_edges_by_phoval_fits()
                         
-                    if self.dist_phoval_to_band(params,Ncheck)<= tol:
-                        accepted.append([d_plus,d_minus,*params])
+                    if lb.dist_phoval_to_band(params,Ncheck)<= tol:
+                        accepted.append([spin, incl,*params])
                         found_accepted = True
                     
                     else:
                         # ## minimize over phi0, chi and X the distance to the lensing band (approximative)
-                        # best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
+                        # best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
                         # bestparams = [best_add_params.x[0], *params[1:4], *best_add_params.x[1:]]
                         
                         ## minimize over phi0, R0, chi and X (R1 and R2 are given by keeping d+, d- constant) the distance to the lensing band
-                        best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],p[1],0.5*d_plus-p[1],0.5*d_minus-p[1],p[2],p[3]],Ncheck), x0=([*params[0:2],*params[4:]]),bounds=[(-math.pi,math.pi),(0., d_minus),(-1,1),(-np.inf,np.inf)])
-                        bestparams = [*best_add_params.x[0:2], 0.5*d_plus-best_add_params.x[1],0.5*d_minus-best_add_params.x[1], *best_add_params.x[2:]]
+                        best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],p[1],0.5*self.dplus-p[1],0.5*self.dminus-p[1],p[2],p[3]],Ncheck), x0=([*params[0:2],*params[4:]]),bounds=[(-math.pi,math.pi),(0., self.dminus),(-1,1),(-np.inf,np.inf)])
+                        bestparams = [*best_add_params.x[0:2], 0.5*self.dplus-best_add_params.x[1],0.5*self.dminus-best_add_params.x[1], *best_add_params.x[2:]]
 
-                        if self.dist_phoval_to_band(bestparams, Ncheck) <= tol:
+                        if lb.dist_phoval_to_band(bestparams, Ncheck) <= tol:
                             params = bestparams
-                            accepted.append([d_plus,d_minus,*params])
+                            accepted.append([spin,incl,*params])
                             found_accepted = True
                             
                         else:                   
-                            rejected.append([d_plus,d_minus,*params])
+                            rejected.append([spin,incl,*params])
                             params=prev_params
                             already_tried.append((index_change,sign))
                             
         np.save(data_save_path+'_accepted.npy', accepted, allow_pickle=True)
         np.save(data_save_path+'_rejected.npy', rejected, allow_pickle=True)
-    
-
-    
+     
     def plot_step(self, step):
         ''' Plots the results of the random walk after the given step'''
         
         if step==0:
             print('No accepted/rejected values computed yet')
         else:
-            data_load_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
+            data_load_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
             accepted = np.load(data_load_path+'_accepted.npy')
             rejected = np.load(data_load_path+'_rejected.npy')
             # print(accepted, rejected)
             plt.figure()
+            plt.xlabel('Spin parameter')
+            plt.ylabel('Inclination (°)')
             for x in accepted:
                 plt.scatter(x[0],x[1],color='g')
             for x in rejected:
                 plt.scatter(x[0],x[1],color='r')
+
                 
     def plot_last_step(self):
         ''' Determines the last step of exploration (0 if nothing was already computed)
         and plots the results after that step'''
         
-        step_data_path = self.step_data_dir + '/spin'+str(self.spin)+'incl'+str(self.incl)+'order'+str(self.order)+'NN'+str(self.NN)
+        step_data_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)
         
         # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
         if not os.path.exists(step_data_path):
