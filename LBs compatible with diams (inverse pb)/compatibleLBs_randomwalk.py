@@ -190,35 +190,48 @@ class DiameterMeasurement:
                     else: #change inclination with the right increment
                         incl += sign*incr[1]
                     
-                    ## Instantiation of a LB, computation of its edges and its phoval fits
-                    lb = LensingBand(spin, incl, self.order, self.NN)
-                    lb.compute_edges_points()
-                    lb.compute_edges_polar()
-                    lb.phoval_fit_edges(100)
-                    lb.replace_edges_by_phoval_fits()
-                        
-                    if lb.dist_phoval_to_band(params,Ncheck)<= tol:
-                        accepted.append([spin, incl,*params])
+                    ### Tests if the point was already computed during previous steps (with a numerical tolerance)
+                    index_a = np.argmin(np.abs(spin-accepted_base[:,0])+np.abs(incl-accepted_base[:,1]))
+                    index_r = np.argmin(np.abs(spin-rejected_base[:,0])+np.abs(incl-rejected_base[:,1]))
+                    if step!=0 and np.abs(spin-accepted_base[index_a,0])+np.abs(incl-accepted_base[index_a,1]) <= 1e-11:
+                        #point already accepted
+                        params = accepted_base[index_a,2:]
                         found_accepted = True
-                    
+                    elif step!=0 and np.abs(spin-rejected_base[index_r,0])+np.abs(incl-rejected_base[index_r,1]) <= 1e-11:
+                        #point already rejected
+                        params=prev_params
+                        already_tried.append((index_change,sign))
                     else:
-                        # ## minimize over phi0, chi and X the distance to the lensing band (approximative)
-                        # best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
-                        # bestparams = [best_add_params.x[0], *params[1:4], *best_add_params.x[1:]]
-                        
-                        ## minimize over phi0, R0, chi and X (R1 and R2 are given by keeping d+, d- constant) the distance to the lensing band
-                        best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],p[1],0.5*self.dplus-p[1],0.5*self.dminus-p[1],p[2],p[3]],Ncheck), x0=([*params[0:2],*params[4:]]),bounds=[(-math.pi,math.pi),(0., self.dminus),(-1,1),(-np.inf,np.inf)])
-                        bestparams = [*best_add_params.x[0:2], 0.5*self.dplus-best_add_params.x[1],0.5*self.dminus-best_add_params.x[1], *best_add_params.x[2:]]
-
-                        if lb.dist_phoval_to_band(bestparams, Ncheck) <= tol:
-                            params = bestparams
-                            accepted.append([spin,incl,*params])
-                            found_accepted = True
                             
-                        else:                   
-                            rejected.append([spin,incl,*params])
-                            params=prev_params
-                            already_tried.append((index_change,sign))
+                        ## Instantiation of a LB, computation of its edges and its phoval fits
+                        lb = LensingBand(spin, incl, self.order, self.NN)
+                        lb.compute_edges_points()
+                        lb.compute_edges_polar()
+                        lb.phoval_fit_edges(100)
+                        lb.replace_edges_by_phoval_fits()
+                            
+                        if lb.dist_phoval_to_band(params,Ncheck)<= tol:
+                            accepted.append([spin, incl,*params])
+                            found_accepted = True
+                        
+                        else:
+                            # ## minimize over phi0, chi and X the distance to the lensing band (approximative)
+                            # best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])
+                            # bestparams = [best_add_params.x[0], *params[1:4], *best_add_params.x[1:]]
+                            
+                            ## minimize over phi0, R0, chi and X (R1 and R2 are given by keeping d+, d- constant) the distance to the lensing band
+                            best_add_params = minimize(lambda p: lb.dist_phoval_to_band([p[0],p[1],0.5*self.dplus-p[1],0.5*self.dminus-p[1],p[2],p[3]],Ncheck), x0=([*params[0:2],*params[4:]]),bounds=[(-math.pi,math.pi),(0., self.dminus),(-1,1),(-np.inf,np.inf)])
+                            bestparams = [*best_add_params.x[0:2], 0.5*self.dplus-best_add_params.x[1],0.5*self.dminus-best_add_params.x[1], *best_add_params.x[2:]]
+    
+                            if lb.dist_phoval_to_band(bestparams, Ncheck) <= tol:
+                                params = bestparams
+                                accepted.append([spin,incl,*params])
+                                found_accepted = True
+                                
+                            else:                   
+                                rejected.append([spin,incl,*params])
+                                params=prev_params
+                                already_tried.append((index_change,sign))
                             
         np.save(data_save_path+'_accepted.npy', accepted, allow_pickle=True)
         np.save(data_save_path+'_rejected.npy', rejected, allow_pickle=True)
