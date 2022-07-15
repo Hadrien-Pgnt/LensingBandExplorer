@@ -201,6 +201,12 @@ class DiameterMeasurement:
                         #point already rejected
                         params=prev_params
                         already_tried.append((index_change,sign))
+                    elif spin<=0. or spin >=1. or incl<=0. or incl >= 90.:
+                        #point rejected because spin or incl is not in the right range
+                        rejected.append([spin,incl,*params])
+                        params=prev_params
+                        already_tried.append((index_change,sign))
+                        
                     else:
                             
                         ## Instantiation of a LB, computation of its edges and its phoval fits
