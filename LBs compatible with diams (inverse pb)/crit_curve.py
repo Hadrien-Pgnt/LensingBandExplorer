@@ -15,8 +15,9 @@ import matplotlib.pyplot as plt
 import os
 from scipy.optimize import curve_fit
 
-def phoval(phi, R0, R1, R2, chi, X):
-    return ( R0 + np.sqrt(R1**2 * np.sin(phi)**2 + R2**2 * np.cos(phi)**2) + (X -chi)*np.cos(phi) + np.arcsin(chi*np.cos(phi)))
+def phoval(phi, phi0, R0, R1, R2, chi, X):
+    '''Projected position function for the rotated phoval'''  
+    return ( R0 + np.sqrt(R1**2 * np.sin(phi-phi0)**2 + R2**2 * np.cos(phi-phi0)**2) + (X -chi)*np.cos(phi-phi0) + np.arcsin(chi*np.cos(phi-phi0)))
 
 def phoval_points(phi, phi0, R0, R1, R2, chi, X):
     ''' Returns the (alpha, beta) points for the (rotated) phoval of params (phi0, R0, R1, R2, chi, X)
@@ -29,7 +30,7 @@ def phoval_points(phi, phi0, R0, R1, R2, chi, X):
 
 
 n_points = int(1e5)
-def crit_curve(a, incl):
+def crit_curve_diams(a, incl):
     ''' Returns the orthogonal (minimal) and parallel (maximal) diameters - in units of M -
     of the critical curve for a Kerr black hole of spin param a and inclination incl'''
     
@@ -73,7 +74,7 @@ class CritCurveGrid:
         '''Computes the values of (d+, d-) of the critical curves 
         for a grid of points (a,i) of size n_grid x n_grid  '''
 
-        dparr, dortho = np.vectorize(crit_curve) (self.a,self.incl)
+        dparr, dortho = np.vectorize(crit_curve_diams) (self.a,self.incl)
         
         np.save('crit_curve_map_(a,i).npy', np.array([self.spins, self.inclinations]), allow_pickle=True)
         np.save('crit_curve_map_(d+,d-).npy', np.array([dparr, dortho]), allow_pickle=True)
@@ -149,20 +150,20 @@ def crit_curve_phoval_fit(a,incl, plot = False):
     #reordering and = mod pi to have phi in [0,2pi[ and in growing order
     phi_param,f = np.concatenate((phi_param[(f>0) & (phi_param>0)],phi_param[(f <0)& (phi_param<0)]+np.pi,phi_param[(f <0)& (phi_param>0)]+np.pi,phi_param[(f > 0) & (phi_param<0)]+2*np.pi)), np.concatenate((f[(f > 0) & (phi_param>0)],-f[(f <0)& (phi_param<0)],-f[(f <0)& (phi_param>0)],f[(f > 0) & (phi_param<0)]))
     
-    popt, pcov = curve_fit(phoval, phi_param, f, p0 = np.array([4.5,0.6,0.06,0.98,2]), bounds=([0,0,0,-1,-np.inf],[np.inf,np.inf,np.inf,1,np.inf]))
+    popt,_ = curve_fit(phoval, phi_param, f, p0 = np.array([0.,4.5,0.6,0.06,0.98,2]), bounds=([0,0,0,0,-1,-np.inf],[90,np.inf,np.inf,np.inf,1,np.inf]))
     
     if plot :
         plt.figure()
         ax = plt.subplot(111, polar=False)
         ax.plot(xcurve, ycurve,'r', label = 'critical curve')
     
-        zopt = phoval_points(phi_p, 0.,*popt)
-        ax.plot(np.real(zopt),np.imag(zopt), 'b:', label=r'numerical fit with : $R_0$=%5.3f, $R_1$=%5.3f, $R_2$=%5.3f, $\chi$=%5.3f, X=%5.3f' % tuple(popt))
-       
+        zopt = phoval_points(phi_p, *popt)
+        ax.plot(np.real(zopt),np.imag(zopt), 'b:', label=r'numerical fit with : $\varphi_0$=%5.1f, $R_0$=%5.3f, $R_1$=%5.3f, $R_2$=%5.3f, $\chi$=%5.3f, X=%5.3f' % tuple(popt))
+        ax.legend()
+        
     return popt
 
 
-### TBD: implement what is described in the docstring
 def crit_curve_phoval_fit_with_diam_constraint(a, incl, dplus, dminus, plot = False):
     ''' Returns the best-fit params for a phoval fit of
     the critical curve for a Kerr black hole of spin param a and inclination incl
@@ -196,20 +197,23 @@ def crit_curve_phoval_fit_with_diam_constraint(a, incl, dplus, dminus, plot = Fa
     f = xcurve[:-1]* np.cos(phi_param) + ycurve[:-1]* np.sin(phi_param)
     
     #reordering and = mod pi to have phi in [0,2pi[ and in growing order
-    phi_param,f = np.concatenate((phi_param[(f>0) & (phi_param>0)],phi_param[(f <0)& (phi_param<0)]+np.pi,phi_param[(f <0)& (phi_param>0)]+np.pi,phi_param[(f > 0) & (phi_param<0)]+2*np.pi)), np.concatenate((f[(f > 0) & (phi_param>0)],-f[(f <0)& (phi_param<0)],-f[(f <0)& (phi_param>0)],f[(f > 0) & (phi_param<0)]))
+    phi_param,f = np.concatenate((phi_param[(f>0) & (phi_param>0)],phi_param[(f <0)& (phi_param<0)]+np.pi,phi_param[(f <0)& (phi_param>0)]+np.pi,phi_param[(f > 0) & (phi_param<0)]+2*np.pi)), np.concatenate((f[(f > 0) & (phi_param>0)],-f[(f <0)& (phi_param<0)],-f[(f <0)& (phi_param>0)],f[(f > 0) & (phi_param<0)]))  
+
+    def constrained_phoval(phi,phi0,R0,chi,X):
+        return phoval(phi, phi0, R0, dplus/2-R0, dminus/2-R0, chi, X)
     
-    def constrained_phoval(R0,phi0 ):
-        pass
-    
-    popt, pcov = curve_fit(phoval, phi_param, f, p0 = np.array([4.5,0.6,0.06,0.98,2]), bounds=([0,0,0,-1,-np.inf],[np.inf,np.inf,np.inf,1,np.inf]))
+    popt,_ = curve_fit(constrained_phoval, phi_param, f, p0 = np.array([0.,4.5,0.98,2]), bounds=([0,0,-1,-np.inf],[90,np.inf,1,np.inf]))
+    popt_full = [*popt[:2], dplus/2-popt[1], dminus/2-popt[1], *popt[2:]]
     
     if plot :
         plt.figure()
         ax = plt.subplot(111, polar=False)
         ax.plot(xcurve, ycurve,'r', label = 'critical curve')
     
-        zopt = phoval_points(phi_p, 0.,*popt)
-        ax.plot(np.real(zopt),np.imag(zopt), 'b:', label=r'numerical fit with : $R_0$=%5.3f, $R_1$=%5.3f, $R_2$=%5.3f, $\chi$=%5.3f, X=%5.3f' % tuple(popt))
-       
-    return popt
+        zopt = phoval_points(phi_p, *popt_full)
+        ax.plot(np.real(zopt),np.imag(zopt), 'b:', label=r'numerical fit with : $\varphi_0$=%5.1f, $R_0$=%5.3f, $R_1$=%5.3f, $R_2$=%5.3f, $\chi$=%5.3f, X=%5.3f' % tuple(popt_full))
+        ax.legend()
+        
+    return popt_full
+
     

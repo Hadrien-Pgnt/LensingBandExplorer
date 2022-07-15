@@ -68,7 +68,7 @@ class DiameterMeasurement:
         self.order = order # order of the ring (we are typically interested in the n=2 ring)
         self.NN = NN #nb of points computed for the LB edges 
         
-        self.phoval_params = np.zeros(6) #rotated phoval parameters   
+        self.phoval_params = None #rotated phoval parameters   
         
         self.spin_guess = spinguess
         self.incl_guess = inclguess
@@ -106,6 +106,10 @@ class DiameterMeasurement:
         
         self.spin_guess = sol.x[0]
         self.incl_guess = sol.x[1]
+        
+        ''' Then fits the obtained crit curve to a phoval (with fixed d+,d-) '''
+        
+        self.phoval_params = cc.crit_curve_phoval_fit_with_diam_constraint(self.spin_guess, self.incl_guess, self.dplus, self.dminus)
 
         
     def explore_one_step(self, incr, startpoint, nhops, tol, Ncheck):
