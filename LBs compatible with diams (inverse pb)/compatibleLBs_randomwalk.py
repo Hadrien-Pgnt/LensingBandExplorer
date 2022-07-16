@@ -16,9 +16,12 @@ import matplotlib.pyplot as plt
 import math
 from scipy.optimize import minimize, root
 from scipy import interpolate
-# from scipy.spatial import ConvexHull
 import random as rnd
 import os
+
+# from scipy.spatial import ConvexHull
+import alphashape
+from descartes import PolygonPatch
 
 ## For nicer plots
 
@@ -74,11 +77,6 @@ class DiameterMeasurement:
         self.incl_guess = inclguess
         
         self.address = os.path.abspath(__file__).replace('\\','/')
-        
-        ##Creates a directory 'Edge_data' if not already existing
-        self.edge_data_dir = '/'.join(self.address.split("/")[:-1]) + '/Edge_data'
-        if not os.path.exists(self.edge_data_dir):
-            os.makedirs(self.edge_data_dir)
             
         ##Creates a directory 'Step_data' if not already existing
         self.step_data_dir = '/'.join(self.address.split("/")[:-1]) + '/Steps_data'
@@ -242,7 +240,7 @@ class DiameterMeasurement:
         np.save(data_save_path+'_accepted.npy', accepted, allow_pickle=True)
         np.save(data_save_path+'_rejected.npy', rejected, allow_pickle=True)
      
-    def plot_step(self, step):
+    def plot_step(self, step, fancy=False):
         ''' Plots the results of the random walk after the given step'''
         
         if step==0:
@@ -251,17 +249,31 @@ class DiameterMeasurement:
             data_load_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
             accepted = np.load(data_load_path+'_accepted.npy')
             rejected = np.load(data_load_path+'_rejected.npy')
-            # print(accepted, rejected)
-            plt.figure()
-            plt.xlabel('Spin parameter')
-            plt.ylabel('Inclination (°)')
-            for x in accepted:
-                plt.scatter(x[0],x[1],color='g')
-            for x in rejected:
-                plt.scatter(x[0],x[1],color='r')
+            
+            if not(fancy):
 
+                plt.figure()
+                plt.xlabel('Spin parameter')
+                plt.ylabel('Inclination (°)')
+                for x in accepted:
+                    plt.scatter(x[0],x[1],color='g')
+                for x in rejected:
+                    plt.scatter(x[0],x[1],color='r')
+            else:
                 
-    def plot_last_step(self):
+                alph = alphashape.optimizealpha(accepted[:,:2])
+                hull = alphashape.alphashape(accepted[:,:2], alph)
+                hull_pts = hull.exterior.coords.xy
+                
+                fig, ax = plt.subplots()
+                ax.set_xlabel('Spin parameter')
+                ax.set_ylabel('Inclination (°)')
+                ax.scatter(self.spin_guess, self.incl_guess, color='tab:brown', s=100, marker='*', alpha=1, label=r'Identification of the $n=2$ ring with a critical curve')
+                ax.scatter(hull_pts[0], hull_pts[1], color=green)
+                ax.add_patch(PolygonPatch(hull, fc=blue, ec='k', alpha=0.1, label=r'$n=2$ lensing bands accepting a phoval with the given diameters'))
+                ax.legend()
+                
+    def plot_last_step(self, fancy=False):
         ''' Determines the last step of exploration (0 if nothing was already computed)
         and plots the results after that step'''
         
@@ -269,10 +281,10 @@ class DiameterMeasurement:
         
         # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
         if not os.path.exists(step_data_path):
-            self.plot_step(0)
+            self.plot_step(0, fancy)
         else:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
-            self.plot_step(laststep)
+            self.plot_step(laststep, fancy)
 
 
 

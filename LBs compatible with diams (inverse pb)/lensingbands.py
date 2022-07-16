@@ -43,18 +43,13 @@ class LensingBand:
         self.inner_edge = np.zeros([2*NN, 2])
         self.outer_edge = np.zeros([2*NN, 2])
         
-        self.address = os.path.abspath(__file__).replace('\\','/')
+        address = os.path.abspath(__file__).replace('\\','/')
         
         ##Creates a directory 'Edge_data' if not already existing
-        self.edge_data_dir = '/'.join(self.address.split("/")[:-1]) + '/Edge_data'
+        self.edge_data_dir = '/'.join(address.split("/")[:-1]) + '/Edge_data'
         if not os.path.exists(self.edge_data_dir):
             os.makedirs(self.edge_data_dir)
-            
-        ##Creates a directory 'Step_data' if not already existing
-        self.step_data_dir = '/'.join(self.address.split("/")[:-1]) + '/Steps_data'
-        if not os.path.exists(self.step_data_dir):
-            os.makedirs(self.step_data_dir)
-        
+                  
         #Initialization of some attributes used later on for interpolation
         self.minangleinner = 0
         self.minangleouter = 0

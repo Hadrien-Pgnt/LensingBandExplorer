@@ -50,13 +50,14 @@ dm.guess_spin_incl_from_crit_curve()
 ### Random walk parameters
 
 incr = (0.01, 2.5) #increments for spin and inclination, respectively
-startpoint = '0.54;62.3'
+startpoint = '0.6;32.5'
 nhops = 100
 tol = 5e-9 
 Ncheck = 100
 
-dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
-dm.plot_last_step()
+# dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
+dm.plot_last_step(fancy=True)
+
 
 
 
