@@ -56,7 +56,7 @@ tol = 5e-9
 Ncheck = 100
 
 # dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
-dm.plot_last_step(fancy=True)
+dm.plot_last_step(fancy=False)
 
 
 
