@@ -49,15 +49,22 @@ dm.guess_spin_incl_from_crit_curve()
 
 ### Random walk parameters
 
-incr = (0.01, 2.5) #increments for spin and inclination, respectively
-startpoint = '0.6;32.5'
-nhops = 100
+# incr = (0.01, 2.5) #increments for spin and inclination, respectively
+incr = (0.002, 1.25)
+startpoint = '0.596;42.2'
+nhops = 50
 tol = 5e-9 
 Ncheck = 100
 
 # dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
-dm.plot_last_step(fancy=False)
+# dm.plot_last_step(fancy=False)
+dm.plot_last_step(fancy=True)
+# dm.plot_last_step_in_dpm_plane(fancy = False)
+    
 
+### Several random walks
 
-
-
+# for startpoint in ['0.554;22.', '0.554;24.5', '0.578; 52.25', '0.598;31.', '0.47; 44.6']:
+#     print(startpoint)
+#     dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
+#     dm.plot_last_step(fancy=False)

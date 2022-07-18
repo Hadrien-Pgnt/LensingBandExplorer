@@ -30,7 +30,7 @@ lb.replace_edges_by_phoval_fits(plot=False)
 ### Random walk parameters
 nhops = 100 #nb of hops
 incr = 0.0005 #increment for each hop
-startpoint = '10.4078;10.2287' #starting point (values can be 'medium', 'upper right', 'lower right', 'lower left', 'upper left', 
+startpoint = 'medium' #starting point (values can be 'medium', 'upper right', 'lower right', 'lower left', 'upper left', 
                     # or some coordinates d+ and d- separated by a ';' - e.g. '9.771;9.709')
 tolerance = 5e-9 #tolerance for the acceptance of a phoval in the LB (to avoid numercial artifacts)
 Ncheck = 100 #nb of points computed for the phoval, used to check that it lies in the LB

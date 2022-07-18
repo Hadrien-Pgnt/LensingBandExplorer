@@ -408,11 +408,27 @@ class LensingBand:
                     d_plus = 2*(R0+R1)
                     d_minus = 2*(R0+R2)
                     # print(d_plus,d_minus,params)
-                        
-                    if self.dist_phoval_to_band(params,Ncheck)<= tol:
-                        accepted.append([d_plus,d_minus,*params])
-                        found_accepted = True
                     
+                    ### Tests if the point was already computed during previous steps (with a numerical tolerance)
+                    if step!=0:                    
+                        index_a = np.argmin(np.abs(d_plus-accepted_base[:,0])+np.abs(d_minus-accepted_base[:,1]))
+                        index_r = np.argmin(np.abs(d_plus-rejected_base[:,0])+np.abs(d_minus-rejected_base[:,1]))
+                    
+                    if step!=0 and np.abs(d_plus-accepted_base[index_a,0])+np.abs(d_minus-accepted_base[index_a,1]) <= 1e-11:
+                        #point already accepted
+                        params = accepted_base[index_a,2:]
+                        found_accepted = True
+                    elif step!=0 and np.abs(d_plus-rejected_base[index_r,0])+np.abs(d_minus-rejected_base[index_r,1]) <= 1e-11:
+                        #point already rejected
+                        params=prev_params
+                        already_tried.append((index_change,sign))
+
+
+                    ### Tries with previous parameters
+                    elif self.dist_phoval_to_band(params,Ncheck)<= tol:
+                            accepted.append([d_plus,d_minus,*params])
+                            found_accepted = True
+                        
                     else:
                         # ## minimize over phi0, chi and X the distance to the lensing band (approximative)
                         # best_add_params = minimize(lambda p: self.dist_phoval_to_band([p[0],*params[1:4],p[1],p[2]],Ncheck), x0=([params[0],*params[4:]]),bounds=[(-math.pi,math.pi),(-1,1),(-np.inf,np.inf)])

@@ -19,7 +19,7 @@ from scipy import interpolate
 import random as rnd
 import os
 
-# from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull
 import alphashape
 from descartes import PolygonPatch
 
@@ -57,7 +57,6 @@ def phoval_points(phi, phi0, R0, R1, R2, chi, X):
     x = f*np.cos(phi) - fprime *np.sin(phi)
     y = f*np.sin(phi) + fprime *np.cos(phi)
     return x+y*1j
-
 
 ########################
 
@@ -183,14 +182,21 @@ class DiameterMeasurement:
                 sign = 2*rnd.randint(0,1) - 1 # randomly pick +/-1   
               
                 if (index_change,sign) not in already_tried:
+                   
+                    # if hop==0: #### TEMPORARY
+                    #     index_change=0
+                    #     sign=-1
+                        
                     if index_change==0:#change spin with the right increment
                         spin += sign*incr[0]
                     else: #change inclination with the right increment
                         incl += sign*incr[1]
                     
                     ### Tests if the point was already computed during previous steps (with a numerical tolerance)
-                    index_a = np.argmin(np.abs(spin-accepted_base[:,0])+np.abs(incl-accepted_base[:,1]))
-                    index_r = np.argmin(np.abs(spin-rejected_base[:,0])+np.abs(incl-rejected_base[:,1]))
+                    if step!=0:
+                        index_a = np.argmin(np.abs(spin-accepted_base[:,0])+np.abs(incl-accepted_base[:,1]))
+                        index_r = np.argmin(np.abs(spin-rejected_base[:,0])+np.abs(incl-rejected_base[:,1]))
+                    
                     if step!=0 and np.abs(spin-accepted_base[index_a,0])+np.abs(incl-accepted_base[index_a,1]) <= 1e-11:
                         #point already accepted
                         params = accepted_base[index_a,2:]
@@ -261,15 +267,21 @@ class DiameterMeasurement:
                     plt.scatter(x[0],x[1],color='r')
             else:
                 
-                alph = 0.9 * alphashape.optimizealpha(accepted[:,:2])
+                alph=0.2
+                # alph = 0.9 * alphashape.optimizealpha(accepted[:,:2])
                 hull = alphashape.alphashape(accepted[:,:2], alph)
-                hull_pts = hull.exterior.coords.xy
+                # hull_pts = hull.exterior.coords.xy
+                hull = hull.simplify(0.003, preserve_topology=False).buffer(0.0005, single_sided=True)
+                # hull = hull.buffer(0.0005, single_sided=True)
                 
                 fig, ax = plt.subplots()
                 ax.set_xlabel('Spin parameter')
                 ax.set_ylabel('Inclination (°)')
                 ax.scatter(self.spin_guess, self.incl_guess, color='tab:brown', s=100, marker='*', alpha=1, label=r'Identification of the $n=2$ ring with a critical curve')
-                ax.scatter(hull_pts[0], hull_pts[1], color=green)
+                # for x in accepted:
+                #     ax.scatter(x[0],x[1],color='g')
+                # for x in rejected:
+                #     ax.scatter(x[0],x[1],color='r')
                 ax.add_patch(PolygonPatch(hull, fc=blue, ec='k', alpha=0.1, label=r'$n=2$ lensing bands accepting a phoval with the given diameters'))
                 ax.legend()
                 
@@ -286,5 +298,44 @@ class DiameterMeasurement:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
             self.plot_step(laststep, fancy)
 
-
+    def plot_step_in_dpm_plane(self, step, fancy = False):
+        ''' Plots the results of the random walk after the given step in the (d+, d-) plane'''
+        
+        if step==0:
+            print('No accepted/rejected values computed yet')
+        else:
+            data_load_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'/step_'+str(step)
+            accepted = np.load(data_load_path+'_accepted.npy')
+            rejected = np.load(data_load_path+'_rejected.npy')
+            
+            plt.figure()
+            plt.tick_params(which='both', labelsize=16)
+            plt.xlabel(r'$d_+/M$',fontsize=24)
+            plt.ylabel(r'$d_-/M$',fontsize=24)
+            
+            if not(fancy):
+                for x in accepted:
+                    plt.scatter(*cc.crit_curve_diams(*x[:2]),color='g')
+                for x in rejected:
+                    plt.scatter(*cc.crit_curve_diams(*x[:2]),color='r')
+            else:
+                pts = []
+                for x in accepted:
+                    pts.append(cc.crit_curve_diams(*x[:2]))
+                hull = ConvexHull(pts)
+                pts = np.array(pts)
+                plt.fill(pts[hull.vertices,0], pts[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Allowed phovals in the lensing band')
+    
+    def plot_last_step_in_dpm_plane(self, fancy=False):
+        ''' Determines the last step of exploration (0 if nothing was already computed)
+        and plots the results after that step in the (d+, d-) plane'''
+        
+        step_data_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)
+        
+        # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
+        if not os.path.exists(step_data_path):
+            self.plot_step_in_dpm_plane(0, fancy)
+        else:
+            laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
+            self.plot_step_in_dpm_plane(laststep, fancy)
 
