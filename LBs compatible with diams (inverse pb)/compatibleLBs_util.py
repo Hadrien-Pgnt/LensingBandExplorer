@@ -33,7 +33,7 @@ NN = 1000 #nb of points computed for the LB edges
 
 # eyeball estimates for the spin & inclination (use the crit. curve map (a,i)->(d+,d-))
 spinguess, inclguess = 0.45, 50
-spinguess, inclguess = 0.9, 20
+# spinguess, inclguess = 0.9, 20
 
 dm = DiameterMeasurement(dplus_measured, dminus_measured, order, NN, spinguess, inclguess )
 
@@ -58,7 +58,7 @@ Ncheck = 100
 
 # dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
 # dm.plot_last_step(fancy=False)
-dm.plot_last_step(fancy=True)
+# dm.plot_last_step(fancy=True)
 # dm.plot_last_step_in_dpm_plane(fancy = False)
     
 
@@ -68,3 +68,29 @@ dm.plot_last_step(fancy=True)
 #     print(startpoint)
 #     dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
 #     dm.plot_last_step(fancy=False)
+
+
+
+### Astrophysically plausible subset
+
+smin = 0.18
+smax = 0.75
+deltamax = 5e-3
+
+## Gives the already accepted points which are also contains the point in their parametrized box
+# dm.compute_subset_astro(smin, smax, deltamax)
+# dm.plot_subset_astro(smin, smax, deltamax)
+
+## More precise determination of the subregion in the (a,i) plane : use a grid between the given limits
+
+bounds = [0.485, 0.575, 32, 50]
+Ngrid = [15, 20]
+
+# bounds = [0.56857143, 0.574, 33, 36]
+# Ngrid = [5, 5]
+
+# dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
+dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
+
+
+

@@ -267,7 +267,8 @@ class DiameterMeasurement:
                     plt.scatter(x[0],x[1],color='r')
             else:
                 
-                alph=0.2
+                # alph=0.2
+                alph=0.002
                 # alph = 0.9 * alphashape.optimizealpha(accepted[:,:2])
                 hull = alphashape.alphashape(accepted[:,:2], alph)
                 # hull_pts = hull.exterior.coords.xy
@@ -275,8 +276,9 @@ class DiameterMeasurement:
                 # hull = hull.buffer(0.0005, single_sided=True)
                 
                 fig, ax = plt.subplots()
-                ax.set_xlabel('Spin parameter')
-                ax.set_ylabel('Inclination (°)')
+                ax.set_xlabel('Spin parameter',fontsize=24 )
+                ax.set_ylabel('Inclination (°)',fontsize=24)
+                ax.tick_params(which='both', labelsize=16)
                 ax.scatter(self.spin_guess, self.incl_guess, color='tab:brown', s=100, marker='*', alpha=1, label=r'Identification of the $n=2$ ring with a critical curve')
                 # for x in accepted:
                 #     ax.scatter(x[0],x[1],color='g')
@@ -284,6 +286,7 @@ class DiameterMeasurement:
                 #     ax.scatter(x[0],x[1],color='r')
                 ax.add_patch(PolygonPatch(hull, fc=blue, ec='k', alpha=0.1, label=r'$n=2$ lensing bands accepting a phoval with the given diameters'))
                 ax.legend()
+                ax.set_title(r'Spin \& inclination from $n=2$ ring with $(d_+/M,d_-/M)_{\rm measured}$ = (%5.3f, %5.3f)' %(self.dplus, self.dminus), fontsize=18)
                 
     def plot_last_step(self, fancy=False):
         ''' Determines the last step of exploration (0 if nothing was already computed)
@@ -324,7 +327,7 @@ class DiameterMeasurement:
                     pts.append(cc.crit_curve_diams(*x[:2]))
                 hull = ConvexHull(pts)
                 pts = np.array(pts)
-                plt.fill(pts[hull.vertices,0], pts[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Allowed phovals in the lensing band')
+                plt.fill(pts[hull.vertices,0], pts[hull.vertices,1], facecolor=(*blue,0.1), edgecolor='k', label = r'Crit. curves with $n=2$ lensing bands accepting a phoval with the given diameters')
     
     def plot_last_step_in_dpm_plane(self, fancy=False):
         ''' Determines the last step of exploration (0 if nothing was already computed)
@@ -338,4 +341,136 @@ class DiameterMeasurement:
         else:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
             self.plot_step_in_dpm_plane(laststep, fancy)
+            
+    def is_in_astro_box(self, spin, incl, smin, smax, deltamax):
+        ''' Determines whether the measured (d+, d-) is in the parametrized bow with params smin, smax, deltamax
+        between the two LB edges for the given spin & incl'''
+        
+        lb = LensingBand(spin, incl, self.order, self.NN)
+        lb.compute_edges_points()
+        lb.compute_edges_polar()
+        lb.phoval_fit_edges(100)
+        dplus_inner, dminus_inner = lb.diams_inner()
+        dplus_outer, dminus_outer = lb.diams_outer()
+        
+        def segment_lensingband(s):
+            return [dplus_inner+s*(dplus_outer-dplus_inner), dminus_inner+s*(dminus_outer-dminus_inner)]
+        
+        smeas = minimize(lambda s: (self.dplus-segment_lensingband(s)[0])**2 + (self.dminus-segment_lensingband(s)[1])**2, x0=[0.5], bounds=[(0,1)])
+        deltameas = np.sqrt((self.dplus-segment_lensingband(smeas.x[0])[0])**2 + (self.dminus-segment_lensingband(smeas.x[0])[1])**2)
+        # print(smeas.x[0], deltameas, segment_lensingband(smeas.x[0]))
+       
+        return (smin <= smeas.x[0] <= smax and deltameas <= deltamax)
+            
+    def compute_subset_astro(self, smin, smax, deltamax):
+        '''Determines the subset of spin & inclination within the already computed points
+        which are astrophysically plausible
+        i.e. when the measured values (d+,d-) are in the parametrized box (with params smin, smax, deltamax)'''
+        
+        #### Loads last step data
+        step_data_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)
+        # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
+        if not os.path.exists(step_data_path):
+            print('No accepted/rejected values computed yet')
+        else:
+            laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
+            data_load_path = step_data_path+'/step_'+str(laststep)
+            accepted = np.load(data_load_path+'_accepted.npy')
+
+
+        #### Tests, for each value in accepted, if the measured pt is in the parametrized box
+            astro_accepted = []
+            for i in range(len(accepted)):
+                print('Processing ' + str(i)+'/'+str(len(accepted)))
+
+                if self.is_in_astro_box(accepted[i][0], accepted[i][1], smin, smax, deltamax):
+                    astro_accepted.append(accepted[i])
+            
+            if not os.path.exists(step_data_path+'_astro'):
+                os.makedirs(step_data_path+'_astro')
+            
+            data_save_path = step_data_path+'_astro/step_'+str(laststep)+'_accepted_smin'+str(smin)+'smax'+str(smax)+'deltamax'+str(deltamax)+'.npy'
+            np.save(data_save_path, astro_accepted, allow_pickle=True)
+        
+                
+    def plot_subset_astro(self, smin, smax, deltamax):
+        ''' Plots the results of compute_subset_astro'''
+        
+        #### Loads last step data
+        step_data_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)
+        # If a folder does not already exist, nothing was computed so "last step" is 0 (and we create the folder) 
+        if not os.path.exists(step_data_path):
+            print('No accepted/rejected values computed yet')
+        else:
+            laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
+            data_load_path = step_data_path+'/step_'+str(laststep)
+            accepted = np.load(data_load_path+'_accepted.npy')
+            rejected = np.load(data_load_path+'_rejected.npy')
+            astro_accepted = np.load(step_data_path+'_astro/step_'+str(laststep)+'_accepted_smin'+str(smin)+'smax'+str(smax)+'deltamax'+str(deltamax)+'.npy')
+
+            plt.figure()
+            plt.xlabel('Spin parameter')
+            plt.ylabel('Inclination (°)')
+            for x in accepted:
+                plt.scatter(x[0],x[1],color='g')
+            for x in rejected:
+                plt.scatter(x[0],x[1],color='r')
+            for x in astro_accepted:
+                plt.scatter(x[0],x[1],color='y')
+    
+    def compute_subregion_astro(self, bounds, Ngrid, smin, smax, deltamax):
+        '''Determines the subregion of spin & inclination which are astrophysically plausible
+        i.e. when the measured values (d+,d-) are in the parametrized box
+        by testing on a Ngrid[0] x Ngrid[1] grid in (a,i) plane 
+        with min (resp. max) spin bounds[0] (resp. bounds[1])
+        and min (resp. max) inclination bounds[2] (resp. bounds[3])'''
+
+        spingrid = np.linspace(bounds[0], bounds[1], Ngrid[0])
+        inclgrid = np.linspace(bounds[2], bounds[3], Ngrid[1])
+        
+        astro_accepted = []
+        count=0
+        for spin in spingrid:
+            for incl in inclgrid:
+                count+=1
+                print('Processing '+str(count) +'/'+ str(Ngrid[0]*Ngrid[1])+ ': (a,i)='+str(spin)+', '+str(incl))
+                if self.is_in_astro_box(spin, incl, smin, smax, deltamax):
+                    astro_accepted.append([spin, incl])
+        
+        save_folder_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'_astro'
+        if not os.path.exists(save_folder_path):
+            os.makedirs(save_folder_path)
+        data_save_path = save_folder_path+'/accepted_smin'+str(smin)+'smax'+str(smax)+'deltamax'+str(deltamax)+'.npy'
+        
+        ## Aggregates with previous data if not existing
+        if not os.path.exists(save_folder_path):
+            np.save(data_save_path, astro_accepted, allow_pickle=True)
+        else:
+            prev_data = np.load(data_save_path)
+            np.save(data_save_path, np.concatenate((prev_data, np.array(astro_accepted))), allow_pickle=True)
+    
+    def plot_subregion_astro(self, smin, smax, deltamax, fancy=False):
+        ''' Plots the results of compute_subregion_astro'''
+        
+        save_folder_path = self.step_data_dir + '/dplus'+str(self.dplus)+'dminus'+str(self.dminus)+'order'+str(self.order)+'NN'+str(self.NN)+'_astro'
+        data_save_path = save_folder_path+'/accepted_smin'+str(smin)+'smax'+str(smax)+'deltamax'+str(deltamax)+'.npy'
+        
+        if not os.path.exists(data_save_path):
+            print('Please compute first')
+        else:
+            astro_accepted = np.load(data_save_path)
+            
+            if not(fancy):
+                self.plot_last_step()
+                for x in astro_accepted:
+                    plt.scatter(x[0],x[1],color='y') 
+            else:
+                self.plot_last_step(fancy=True)
+                hull = ConvexHull(astro_accepted)
+                plt.fill(astro_accepted[hull.vertices,0], astro_accepted[hull.vertices,1], facecolor=(*green,0.1), edgecolor=(0,0,0,0.1), label = r'$n=2$ lensing bands containing the given diameters in the box with params $s_{\rm min}$=%5.2f, $s_{\rm max}$=%5.2f, $\delta_{\rm max}$=%5.0f $\times 10^{-3}$'%(smin, smax, deltamax*1e3))
+                plt.legend(fontsize=15, loc='lower right')
+
+                
+                
+            
 

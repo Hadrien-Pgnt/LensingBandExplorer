@@ -134,7 +134,7 @@ class LensingBand:
             return self.rinner_missing(sigma+2*math.pi)
         else:
             raise ValueError
-            
+    
     def phoval_fit_edges(self, Ncheck):
         ''' Fits the edges to a (rotated) phoval, using Ncheck points and saves the phoval params'''
         
@@ -210,6 +210,14 @@ class LensingBand:
         self.inner_edge[:,1] = np.imag(points_inner)
     
         self.compute_edges_polar()
-        
-        
+    
+    def diams_inner(self):
+        '''Returns (d+, d-) for the phoval fit of the inner edge'''
+        p = self.phoval_inner.x
+        return (2*(p[1]+ max(p[2], p[3])), 2*(p[1]+ min(p[2], p[3])))
+    
+    def diams_outer(self):
+        '''Returns (d+, d-) for the phoval fit of the outer edge'''
+        p = self.phoval_outer.x
+        return (2*(p[1]+ max(p[2], p[3])), 2*(p[1]+ min(p[2], p[3])))
            
