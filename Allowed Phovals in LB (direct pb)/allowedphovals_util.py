@@ -11,8 +11,10 @@ determined by spin, inclination and order of the LB
 from allowedphovals_randomwalk import LensingBand
 
 ### LB parameters
-spin = 0.94
-incl = 17
+# spin = 0.94
+# incl = 17
+spin = 0.5
+incl = 45
 order = 2
 NN = 100 #nb of points computed for the edges
 
@@ -39,11 +41,12 @@ Ncheck = 100 #nb of points computed for the phoval, used to check that it lies i
 ### and plots the result after this step
 ### (this should be executed over and over until satisfactory determination of the boundary between allowed and rejected)
 
-lb.explore_one_step(incr, startpoint, nhops, tolerance, Ncheck)
-lb.plot_last_step(fancy=False)
+# lb.explore_one_step(incr, startpoint, nhops, tolerance, Ncheck)
+# lb.plot_last_step(fancy=False)
 
 ### Shows the allowed region as a hull (use when satisfactory determination of the boundary is reached)
-# lb.plot_last_step(fancy=True)  
+# lb.plot_last_step(fancy=True) 
+# lb.plot_parametrized_box(0.18, 0.75, 5e-3) ## Adds a parametrized box 
 
 
 

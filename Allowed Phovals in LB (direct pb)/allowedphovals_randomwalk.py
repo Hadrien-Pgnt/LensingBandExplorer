@@ -530,6 +530,31 @@ class LensingBand:
         else:
             laststep = max([int(file[5:-13]) for file in os.listdir(step_data_path)]) #the file names should be of the form 'step_x.npy' where x is the nb of the step
             self.plot_step(laststep, fancy)
+        
+    def plot_parametrized_box(self, smin, smax, deltamax):
+        '''Plots the parametrized box going from the LB inner edge to the outer edge 
+        with affine params smin and smax giving the box's limit in 1 direction
+        and delta max giving the limit in the perpendicular direction'''
+
+        self.plot_last_step(fancy=True)
+            
+        dplus_inner = 2*(self.phoval_inner.x[1]+ max(self.phoval_inner.x[2], self.phoval_inner.x[3]))
+        dminus_inner = 2*(self.phoval_inner.x[1]+ min(self.phoval_inner.x[2], self.phoval_inner.x[3]))
+        dplus_outer = 2*(self.phoval_outer.x[1]+ max(self.phoval_outer.x[2], self.phoval_outer.x[3]))
+        dminus_outer = 2*(self.phoval_outer.x[1]+ min(self.phoval_outer.x[2], self.phoval_outer.x[3]))
+        
+        def segment_lensingband(s):
+            return [dplus_inner+s*(dplus_outer-dplus_inner), dminus_inner+s*(dminus_outer-dminus_inner)]
+
+        box_smin = segment_lensingband(smin)
+        box_smax = segment_lensingband(smax)
+        theta = np.arctan((dminus_outer-dminus_inner)/(dplus_outer-dplus_inner))
+        
+        plt.fill([box_smin[0]-deltamax*np.sin(theta),box_smin[0]+deltamax*np.sin(theta),box_smax[0]+deltamax*np.sin(theta),box_smax[0]-deltamax*np.sin(theta)], [box_smin[1]+deltamax*np.cos(theta),box_smin[1]-deltamax*np.cos(theta),box_smax[1]-deltamax*np.cos(theta),box_smax[1]+deltamax*np.cos(theta)], color=green, alpha=0.2, label=r'Parametrized box with $s_{\rm min}$=%5.2f, $s_{\rm max}$=%5.2f, $\delta_{\rm max}$=%5.0f $\times 10^{-3}$'%(smin, smax, deltamax*1e3))
+        plt.legend()
+        plt.axis('equal')
+
+        
 
 
 
