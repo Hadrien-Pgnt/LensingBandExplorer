@@ -442,8 +442,8 @@ class DiameterMeasurement:
             os.makedirs(save_folder_path)
         data_save_path = save_folder_path+'/accepted_smin'+str(smin)+'smax'+str(smax)+'deltamax'+str(deltamax)+'.npy'
         
-        ## Aggregates with previous data if not existing
-        if not os.path.exists(save_folder_path):
+        ## Aggregates with previous data if existing
+        if not os.path.exists(data_save_path):
             np.save(data_save_path, astro_accepted, allow_pickle=True)
         else:
             prev_data = np.load(data_save_path)

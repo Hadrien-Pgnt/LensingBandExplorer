@@ -90,9 +90,8 @@ Ngrid = [15, 20]
 # bounds = [0.56857143, 0.574, 33, 36]
 # Ngrid = [5, 5]
 
-print(dm.is_in_astro_box(0.9585714285714286, 25.18421052631579, smin, smax, deltamax))
-# dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
-# dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
+dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
+dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
 
 
 
