@@ -141,18 +141,24 @@ class LensingBand:
         phi_check = np.linspace(-np.pi,np.pi,Ncheck)
         
         def RMSdistance_phoval_outer(params):
-            z = phoval_points(phi_check,*params)
-            sigma = np.angle(z) #polar angles of the phoval points
-            radius = np.vectorize(self.radius_outer)(sigma) #corresponding radii for the outer edge of the lensing band
-            return np.sqrt(np.sum(np.abs(z-radius*np.exp(1j*sigma))**2))
+            try:
+                z = phoval_points(phi_check,*params)
+                sigma = np.angle(z) #polar angles of the phoval points
+                radius = np.vectorize(self.radius_outer)(sigma) #corresponding radii for the outer edge of the lensing band
+                return np.sqrt(np.sum(np.abs(z-radius*np.exp(1j*sigma))**2))
+            except ValueError:
+                return np.inf
 
         self.phoval_outer = minimize(RMSdistance_phoval_outer, x0=([0.,5.,5.,4.,0.,1.]), bounds=[(-math.pi,math.pi),(0,np.inf),(0,np.inf),(0,np.inf),(-1,1),(-np.inf,np.inf)])
         
         def RMSdistance_phoval_inner(params):
-            z = phoval_points(phi_check,*params)
-            sigma = np.angle(z) #polar angles of the phoval points
-            radius = np.vectorize(self.radius_inner)(sigma) #corresponding radii for the inner edge of the lensing band
-            return np.sqrt(np.sum(np.abs(z-radius*np.exp(1j*sigma))**2))
+            try:
+                z = phoval_points(phi_check,*params)
+                sigma = np.angle(z) #polar angles of the phoval points
+                radius = np.vectorize(self.radius_inner)(sigma) #corresponding radii for the inner edge of the lensing band
+                return np.sqrt(np.sum(np.abs(z-radius*np.exp(1j*sigma))**2))
+            except ValueError:
+                return np.inf
 
         self.phoval_inner = minimize(RMSdistance_phoval_inner, x0=([0.,5.,5.,4.,0.,1.]), bounds=[(-math.pi,math.pi),(0,np.inf),(0,np.inf),(0,np.inf),(-1,1),(-np.inf,np.inf)])
         

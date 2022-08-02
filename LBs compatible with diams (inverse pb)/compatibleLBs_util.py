@@ -22,18 +22,18 @@ import crit_curve as cc
 
 ### Instantiation
 
-# these values of d+, d- correspond to the critical curve for a=0.5, i=45°
-dplus_measured, dminus_measured = 10.318483143214817, 10.235834607023905
+# # these values of d+, d- correspond to the critical curve for a=0.5, i=45°
+# dplus_measured, dminus_measured = 10.318483143214817, 10.235834607023905
 
-# # these values of d+, d- correspond to the critical curve for a=0.94, i=17°
-# dplus_measured, dminus_measured = 9.833778588299497, 9.7317131865179
+# these values of d+, d- correspond to the critical curve for a=0.94, i=17°
+dplus_measured, dminus_measured = 9.833778588299497, 9.7317131865179
 
 order = 2 #order of the image (here we are interested in the n=2 ring)
 NN = 1000 #nb of points computed for the LB edges 
 
 # eyeball estimates for the spin & inclination (use the crit. curve map (a,i)->(d+,d-))
-spinguess, inclguess = 0.45, 50
-# spinguess, inclguess = 0.9, 20
+# spinguess, inclguess = 0.45, 50
+spinguess, inclguess = 0.9, 20
 
 dm = DiameterMeasurement(dplus_measured, dminus_measured, order, NN, spinguess, inclguess )
 
@@ -49,12 +49,13 @@ dm.guess_spin_incl_from_crit_curve()
 
 ### Random walk parameters
 
-# incr = (0.01, 2.5) #increments for spin and inclination, respectively
-incr = (0.002, 1.25)
-startpoint = '0.596;42.2'
-nhops = 50
-tol = 5e-9 
+incr = (0.01, 2.5) #increments for spin and inclination, respectively
+# incr = (0.002, 1.25)
+# startpoint = 'critical curve guess'
+startpoint = '0.99;24.'
+nhops = 100
 Ncheck = 100
+tol = 5e-9 
 
 # dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
 # dm.plot_last_step(fancy=False)
@@ -83,14 +84,15 @@ deltamax = 5e-3
 
 ## More precise determination of the subregion in the (a,i) plane : use a grid between the given limits
 
-bounds = [0.485, 0.575, 32, 50]
+bounds = [0.93, 0.98, 1.5, 26.5]
 Ngrid = [15, 20]
 
 # bounds = [0.56857143, 0.574, 33, 36]
 # Ngrid = [5, 5]
 
+print(dm.is_in_astro_box(0.9585714285714286, 25.18421052631579, smin, smax, deltamax))
 # dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
-dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
+# dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
 
 
 

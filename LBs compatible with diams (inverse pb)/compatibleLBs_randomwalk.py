@@ -267,8 +267,8 @@ class DiameterMeasurement:
                     plt.scatter(x[0],x[1],color='r')
             else:
                 
-                # alph=0.2
-                alph=0.002
+                # alph=0.002
+                alph=0
                 # alph = 0.9 * alphashape.optimizealpha(accepted[:,:2])
                 hull = alphashape.alphashape(accepted[:,:2], alph)
                 # hull_pts = hull.exterior.coords.xy
