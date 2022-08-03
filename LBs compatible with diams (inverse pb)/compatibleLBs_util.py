@@ -49,11 +49,11 @@ dm.guess_spin_incl_from_crit_curve()
 
 ### Random walk parameters
 
-incr = (0.01, 2.5) #increments for spin and inclination, respectively
-# incr = (0.002, 1.25)
+# incr = (0.01, 2.5) #increments for spin and inclination, respectively
+incr = (0.002, 1.25)
 # startpoint = 'critical curve guess'
-startpoint = '0.99;24.'
-nhops = 100
+startpoint = '0.922;10.2'
+nhops = 10
 Ncheck = 100
 tol = 5e-9 
 
@@ -65,7 +65,7 @@ tol = 5e-9
 
 ### Several random walks
 
-# for startpoint in ['0.554;22.', '0.554;24.5', '0.578; 52.25', '0.598;31.', '0.47; 44.6']:
+# for startpoint in ['0.992;21.5', '0.9999;19.', '0.998;11.5', '0.972;0.2', '0.946;25.3']:
 #     print(startpoint)
 #     dm.explore_one_step(incr, startpoint, nhops, tol, Ncheck)
 #     dm.plot_last_step(fancy=False)
@@ -84,14 +84,15 @@ deltamax = 5e-3
 
 ## More precise determination of the subregion in the (a,i) plane : use a grid between the given limits
 
-bounds = [0.93, 0.98, 1.5, 26.5]
-Ngrid = [15, 20]
+bounds = [0.98, 0.985, 15.4, 16]
+Ngrid = [4, 5]
 
 # bounds = [0.56857143, 0.574, 33, 36]
 # Ngrid = [5, 5]
 
-dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
-dm.plot_subregion_astro(smin, smax, deltamax, fancy=True)
+# dm.is_in_astro_box(0.94, 17, smin, smax, deltamax)
+# dm.compute_subregion_astro(bounds, Ngrid, smin, smax, deltamax)
+dm.plot_subregion_astroà(smin, smax, deltamax, fancy=True)
 
 
 
